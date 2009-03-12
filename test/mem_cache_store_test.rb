@@ -3,6 +3,8 @@ require File.dirname(__FILE__) + '/../lib/open_id_authentication/mem_cache_store
 
 class UnfreezeableMemoryStore < ActiveSupport::Cache::MemoryStore
   def write(name, value, options=nil)
+    #Don't allow value to be frozen
+    #Rescue in case it tries to .freeze an immediate object
     value.expects(:freeze).returns(value) rescue nil
     super
   end
