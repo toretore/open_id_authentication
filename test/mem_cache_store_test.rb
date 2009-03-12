@@ -1,10 +1,28 @@
 require File.dirname(__FILE__) + '/test_helper'
 require File.dirname(__FILE__) + '/../lib/open_id_authentication/mem_cache_store'
 
+class UnfreezeableMemoryStore < ActiveSupport::Cache::MemoryStore
+  def write(name, value, options=nil)
+    value.expects(:freeze).returns(value) rescue nil
+    super
+  end
+end
+
+class UnfreezeableMemoryStoreTest < Test::Unit::TestCase
+  def test_write
+    store = UnfreezeableMemoryStore.new
+    store.write('foo', 'bar')
+    assert_equal 'bar', store.read('foo')
+    store.write('hash', {:foo => "bar"})
+    assert_nothing_raised{ store.read('hash')[:bar] = "baz" }
+    assert_equal "baz", store.read('hash')[:bar]
+  end
+end
+
 # Mock MemCacheStore with MemoryStore for testing
 class OpenIdAuthentication::MemCacheStore < OpenID::Store::Interface
   def initialize(*addresses)
-    @connection = ActiveSupport::Cache::MemoryStore.new
+    @connection = UnfreezeableMemoryStore.new
   end
 end
 
